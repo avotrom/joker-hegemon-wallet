@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Rust (latest stable) + WebAssembly target
         uses: dtolnay/rust-toolchain@stable
@@ -46,12 +46,15 @@ jobs:
       - name: binaryen (wasm-opt)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq binaryen
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
+
+      - name: Patch Hegemon for the browser target
+        run: python3 scripts/patch_hegemon_browser.py hegemon
 
       - name: Native check of the core (same code, host target)
         working-directory: core
