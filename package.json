@@ -1,0 +1,21 @@
+{
+  "name": "joker-hegemon-extension-wallet",
+  "version": "0.2.1",
+  "private": true,
+  "description": "Joker Hegemon Extension Wallet (Chrome MV3)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "build:core": "bash scripts/build-core.sh",
+    "build": "node scripts/build.mjs",
+    "build:mock": "node scripts/build.mjs --mock",
+    "zip": "node scripts/build.mjs --zip"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "dependencies": {
+    "@scure/bip39": "^1.6.0",
+    "qrcode-generator": "^1.4.4"
+  }
+}

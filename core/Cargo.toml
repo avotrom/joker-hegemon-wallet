@@ -1,0 +1,54 @@
+[package]
+name = "joker-core"
+version = "0.2.1"
+edition = "2024"
+rust-version = "1.91"
+description = "Joker Hegemon Extension Wallet core: Hegemon wallet store, sync and PrivateSpend proving, compiled to WebAssembly"
+license = "LicenseRef-AllRightsReserved"
+publish = false
+
+# Stand-alone workspace. ../hegemon is a Pauli-Group/Hegemon v0.11.4 checkout
+# patched by scripts/patch_hegemon_browser.py. Its own Cargo.lock is never
+# rewritten (it is hashed into proof relation digests); core/Cargo.lock starts
+# as a copy of it so every shared crate resolves to the same version.
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wallet = { path = "../hegemon/wallet", default-features = false }
+transaction-circuit = { path = "../hegemon/circuits/transaction", default-features = false }
+synthetic-crypto = { path = "../hegemon/crypto" }
+protocol-kernel = { path = "../hegemon/protocol/kernel" }
+hegemon-hash384 = { path = "../hegemon/crypto/hash384" }
+codec = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive", "std"] }
+anyhow = "1"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zeroize = "1.8"
+argon2 = "0.5"
+
+[features]
+# Development only: a PrivateSpend proving benchmark on Hegemon's disposable
+# qualification fixture (no keys, no funds). Never enabled in release builds.
+bench = ["transaction-circuit/private-spend-dev-artifacts"]
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+wasm-bindgen = "0.2.130"
+console_error_panic_hook = "0.1"
+# Browser randomness (crypto.getRandomValues) for every getrandom generation
+# in Hegemon's dependency tree. 0.3 also needs
+# RUSTFLAGS='--cfg getrandom_backend="wasm_js"' (set in .cargo/config.toml).
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+getrandom04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+chrono = { version = "0.4", default-features = false, features = ["wasmbind"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = 0
+panic = "abort"

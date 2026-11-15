@@ -1,0 +1,6 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+  '--cfg', 'getrandom_backend="wasm_js"',
+  # PrivateSpend proving peaks around 2-2.5 GiB: allow the full 4 GiB wasm32 space.
+  '-C', 'link-arg=--max-memory=4294967296',
+]

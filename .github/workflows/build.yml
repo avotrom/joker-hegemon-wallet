@@ -1,0 +1,82 @@
+name: Build extension
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  HEGEMON_REF: v0.11.4
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust (latest stable) + WebAssembly target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Hegemon source
+        run: git clone --depth 1 --branch "$HEGEMON_REF" https://github.com/Pauli-Group/Hegemon.git hegemon
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core -> target
+          key: ${{ env.HEGEMON_REF }}
+
+      - name: wasm-bindgen CLI (same version as core/Cargo.lock)
+        run: |
+          v=$(awk '/^name = "wasm-bindgen"$/{getline; gsub(/version = |"/,""); print; exit}' core/Cargo.lock)
+          echo "WASM_BINDGEN_VERSION=$v" >> "$GITHUB_ENV"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ env.WASM_BINDGEN_VERSION }}
+
+      - name: binaryen (wasm-opt)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq binaryen
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Native check of the core (same code, host target)
+        working-directory: core
+        run: cargo check --locked
+
+      - name: Build core (Rust → WebAssembly → JS bindings)
+        run: bash scripts/build-core.sh
+
+      - name: Build extension zip
+        run: node scripts/build.mjs --zip
+
+      - name: Checksums
+        run: sha256sum joker-hegemon-wallet-*.zip core/pkg/joker_core_bg.wasm | tee SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: joker-hegemon-wallet
+          path: |
+            joker-hegemon-wallet-*.zip
+            SHA256SUMS.txt
+
+      - name: GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            joker-hegemon-wallet-*.zip
+            SHA256SUMS.txt

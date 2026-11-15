@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-mock/
+core/target/
+core/pkg/
+core/joker-native-wallet/
+hegemon
+hegemon/
+*.zip
+SHA256SUMS.txt
